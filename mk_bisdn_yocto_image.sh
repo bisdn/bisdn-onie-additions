@@ -11,4 +11,4 @@
 MACHINE=$1
 shift
 
-../onie/build-config/scripts/onie-mk-demo.sh x86_64 ${BISDN_ONIE_MACHINE} ${BISDN_ONIE_PLATFORM} ./bisdn/installer/ ./bisdn/machine/${PLATFORM_VENDOR}/${MACHINE}/platform.conf onie-bisdn-${MACHINE}.bin OS $*
+./onie/build-config/scripts/onie-mk-demo.sh x86_64 ${BISDN_ONIE_MACHINE} ${BISDN_ONIE_PLATFORM} ./bisdn/installer/ ./bisdn/machine/${PLATFORM_VENDOR}/${MACHINE}/platform.conf onie-bisdn-${MACHINE}.bin OS $*
