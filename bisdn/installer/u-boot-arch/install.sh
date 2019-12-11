@@ -12,6 +12,10 @@ cd $(dirname $0)
 
 echo "Demo Installer: platform: $platform"
 
+check_platform() {
+	/bin/true
+}
+
 install_uimage() {
     echo "Copying uImage to NOR flash:"
     flashcp -v demo-${platform}.itb $mtd_dev
@@ -22,6 +26,8 @@ hw_load() {
 }
 
 . ./platform.conf
+
+check_platform
 
 install_uimage
 
