@@ -21,21 +21,20 @@ shift
 rootfs_arch=${BISDN_ARCH}
 machine=${BISDN_ONIE_MACHINE}
 platform=${BISDN_ONIE_PLATFORM}
-installer_dir="./bisdn/installer/"
 platform_conf="./bisdn/machine/${PLATFORM_VENDOR}/${MACHINE}/platform.conf"
 output_file="onie-bisdn-${MACHINE}.bin"
 
-if  [ ! -d $installer_dir ] || \
-    [ ! -r $installer_dir/sharch_body.sh ] ; then
-    echo "Error: Invalid installer script directory: $installer_dir"
+if  [ ! -d ./bisdn/installer ] || \
+    [ ! -r ./bisdn/installer/sharch_body.sh ] ; then
+    echo "Error: Invalid installer script directory: ./bisdn/installer"
     exit 1
 fi
 
 arch_dir="$rootfs_arch"
 
-if  [ ! -d $installer_dir/$arch_dir ] || \
-    [ ! -r $installer_dir/$arch_dir/install.sh ] ; then
-    echo "Error: Invalid arch installer directory: $installer_dir/$arch_dir"
+if  [ ! -d ./bisdn/installer/$arch_dir ] || \
+    [ ! -r ./bisdn/installer/$arch_dir/install.sh ] ; then
+    echo "Error: Invalid arch installer directory: ./bisdn/installer/$arch_dir"
     exit 1
 fi
 
@@ -67,7 +66,7 @@ tmp_dir=$(mktemp --directory)
 tmp_installdir="$tmp_dir/installer"
 mkdir $tmp_installdir || clean_up 1
 
-cp $installer_dir/$arch_dir/install.sh $tmp_installdir || clean_up 1
+cp ./bisdn/installer/$arch_dir/install.sh $tmp_installdir || clean_up 1
 
 cp $* $tmp_installdir || clean_up 1
 echo -n "."
@@ -89,7 +88,7 @@ echo -n "."
 }
 sha1=$(cat $sharch | sha1sum | awk '{print $1}')
 echo -n "."
-cp $installer_dir/sharch_body.sh $output_file || {
+cp ./bisdn/installer/sharch_body.sh $output_file || {
     echo "Error: Problems copying sharch_body.sh"
     clean_up 1
 }
