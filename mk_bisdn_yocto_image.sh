@@ -20,7 +20,6 @@ shift
 
 rootfs_arch=${BISDN_ARCH}
 machine=${BISDN_ONIE_MACHINE}
-platform=${BISDN_ONIE_PLATFORM}
 platform_conf="./bisdn/machine/${PLATFORM_VENDOR}/${MACHINE}/platform.conf"
 output_file="onie-bisdn-${MACHINE}.bin"
 
@@ -72,7 +71,7 @@ cp $* $tmp_installdir || clean_up 1
 echo -n "."
 cp $platform_conf $tmp_installdir || clean_up 1
 echo "machine=$machine" > $tmp_installdir/machine.conf
-echo "platform=$platform" >> $tmp_installdir/machine.conf
+echo "platform=${BISDN_ONIE_PLATFORM}" >> $tmp_installdir/machine.conf
 echo -n "."
 
 sharch="$tmp_dir/sharch.tar"
