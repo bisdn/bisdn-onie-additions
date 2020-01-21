@@ -24,7 +24,6 @@ platform=${BISDN_ONIE_PLATFORM}
 installer_dir="./bisdn/installer/"
 platform_conf="./bisdn/machine/${PLATFORM_VENDOR}/${MACHINE}/platform.conf"
 output_file="onie-bisdn-${MACHINE}.bin"
-demo_type="OS"
 
 if  [ ! -d $installer_dir ] || \
     [ ! -r $installer_dir/sharch_body.sh ] ; then
@@ -50,15 +49,6 @@ fi
     exit 1
 }
 
-case $demo_type in
-    OS|DIAG)
-        # These are supported
-        ;;
-    *)
-        echo "Error: Unsupported demo type: $demo_type"
-        exit 1
-esac
-
 tmp_dir=
 clean_up()
 {
@@ -79,10 +69,6 @@ mkdir $tmp_installdir || clean_up 1
 
 cp $installer_dir/$arch_dir/install.sh $tmp_installdir || clean_up 1
 
-# Tailor the demo installer for OS mode or DIAG mode
-sed -i -e "s/%%DEMO_TYPE%%/$demo_type/g" \
-    $tmp_installdir/install.sh || clean_up 1
-echo -n "."
 cp $* $tmp_installdir || clean_up 1
 echo -n "."
 cp $platform_conf $tmp_installdir || clean_up 1
