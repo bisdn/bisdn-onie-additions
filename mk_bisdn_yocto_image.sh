@@ -18,7 +18,6 @@
 MACHINE=$1
 shift
 
-rootfs_arch=${BISDN_ARCH}
 platform_conf="./bisdn/machine/${PLATFORM_VENDOR}/${MACHINE}/platform.conf"
 output_file="onie-bisdn-${MACHINE}.bin"
 
@@ -28,11 +27,9 @@ if  [ ! -d ./bisdn/installer ] || \
     exit 1
 fi
 
-arch_dir="$rootfs_arch"
-
-if  [ ! -d ./bisdn/installer/$arch_dir ] || \
-    [ ! -r ./bisdn/installer/$arch_dir/install.sh ] ; then
-    echo "Error: Invalid arch installer directory: ./bisdn/installer/$arch_dir"
+if  [ ! -d./ bisdn/installer/${BISDN_ARCH} ] || \
+    [ ! -r ./bisdn/installer/${BISDN_ARCH}/install.sh ] ; then
+    echo "Error: Invalid arch installer directory: ./bisdn/installer/${BISDN_ARCH}"
     exit 1
 fi
 
@@ -64,7 +61,7 @@ tmp_dir=$(mktemp --directory)
 tmp_installdir="$tmp_dir/installer"
 mkdir $tmp_installdir || clean_up 1
 
-cp ./bisdn/installer/$arch_dir/install.sh $tmp_installdir || clean_up 1
+cp ./bisdn/installer/${BISDN_ARCH}/install.sh $tmp_installdir || clean_up 1
 
 cp $* $tmp_installdir || clean_up 1
 echo -n "."
