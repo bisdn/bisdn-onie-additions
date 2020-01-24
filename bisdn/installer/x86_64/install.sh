@@ -22,6 +22,17 @@ blk_dev=$(blkid | grep ONIE-BOOT | awk '{print $1}' |  sed -e 's/[1-9][0-9]*:.*$
     exit 1
 }
 
+part_blk_dev() {
+    case "$1" in
+        *mmcblk*|*nvme*)
+            echo "${1}p${2}"
+            ;;
+        *)
+            echo "${1}${2}"
+            ;;
+    esac
+}
+
 demo_volume_label="BISDN-Linux"
 
 # auto-detect whether BIOS or UEFI
@@ -61,21 +72,28 @@ DO_RESTORE=false
 # sets flag 'DO_RESTORE' to true to enable config restoration at the end
 backup_cfg()
 {
-    echo "Existing network configuration found!"
+    echo "Existing installation found!"
 
     backup_tmp_dir=$(mktemp -d)
     network="etc/systemd/network"
     mkdir -p $backup_tmp_dir/$network
 
     bisdn_linux_old=$(mktemp -d)
-    mount $1$2 $bisdn_linux_old
+    mount $(part_blk_dev $1 $2) $bisdn_linux_old
 
-    echo "Creating backup of existing /$network/ directory"
-    cp -r $bisdn_linux_old/$network/* $backup_tmp_dir/$network
+    if [ -d "$bisdn_linux_old/$network" ] && grep -q -r "^Name=enp" $bisdn_linux_old/$network; then
+        echo "Creating backup of existing management interface configuration"
+        for file in $(grep -l -r "^Name=enp" $bisdn_linux_old/$network); do
+            case "$file" in
+                *.network)
+                    cp $file $backup_tmp_dir/$network
+                    DO_RESTORE=true
+                    ;;
+            esac
+        done
+    fi
 
     umount $bisdn_linux_old
-
-    DO_RESTORE=true
 }
 
 # Creates a new partition for the DEMO OS.
@@ -239,7 +257,7 @@ demo_install_uefi_grub()
 }
 
 eval $create_demo_partition $blk_dev
-demo_dev=$(echo $blk_dev | sed -e 's/\(mmcblk[0-9]\)/\1p/')$demo_part
+demo_dev=$(part_blk_dev $blk_dev $demo_part)
 partprobe
 fs_type="ext4"
 
@@ -415,7 +433,7 @@ cp $grub_cfg $demo_mnt/boot/grub/grub.cfg
 
 # Restore the network configuration from previous installation
 if [ "${DO_RESTORE}" = true ]; then
-  echo "Restoring backup of existing /$network/ directory"
+  echo "Restoring backup of existing management configuration"
   cp -r $backup_tmp_dir/$network/* $demo_mnt/$network
 fi;
 
