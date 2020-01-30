@@ -9,7 +9,6 @@
 #defaults if not set; overridden by platform.conf
 [ -z "$BISDN_ARCH" ] && export BISDN_ARCH=x86_64
 
-[ -z "$BISDN_ONIE_MACHINE" ] && export BISDN_ONIE_MACHINE="unknown_machine"
 [ -z "$BISDN_ONIE_PLATFORM" ] && export BISDN_ONIE_PLATFORM="unknown_platform"
 
 MACHINE=$1
@@ -63,7 +62,6 @@ cp ./bisdn/installer/${BISDN_ARCH}/install.sh $tmp_installdir || clean_up 1
 cp $* $tmp_installdir || clean_up 1
 echo -n "."
 cp $platform_conf $tmp_installdir || clean_up 1
-echo "machine=${BISDN_ONIE_MACHINE}" > $tmp_installdir/machine.conf
 echo "platform=${BISDN_ONIE_PLATFORM}" >> $tmp_installdir/machine.conf
 echo -n "."
 
