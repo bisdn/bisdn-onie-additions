@@ -23,7 +23,7 @@ if  [ ! -d ./bisdn/installer ] || \
     exit 1
 fi
 
-if  [ ! -d./ bisdn/installer/${BISDN_ARCH} ] || \
+if  [ ! -d ./bisdn/installer/${BISDN_ARCH} ] || \
     [ ! -r ./bisdn/installer/${BISDN_ARCH}/install.sh ] ; then
     echo "Error: Invalid arch installer directory: ./bisdn/installer/${BISDN_ARCH}"
     exit 1
