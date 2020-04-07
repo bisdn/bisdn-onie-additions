@@ -10,7 +10,7 @@ set -e
 cd $(dirname $0)
 . ./machine.conf
 
-echo "Demo Installer: platform: $platform"
+echo "BISDN Linux Installer: platform: $platform"
 
 check_platform() {
 	/bin/true
@@ -18,7 +18,7 @@ check_platform() {
 
 install_uimage() {
     echo "Copying uImage to NOR flash:"
-    flashcp -v demo-${platform}.itb $mtd_dev
+    flashcp -v bisdn-linux-${platform}.itb $mtd_dev
 }
 
 hw_load() {
@@ -36,7 +36,7 @@ hw_load_str="$(hw_load)"
 echo "Updating U-Boot environment variables"
 (cat <<EOF
 hw_load $hw_load_str
-copy_img echo "Loading Demo $platform image..." && run hw_load
+copy_img echo "Loading BISDN Linux $platform image..." && run hw_load
 nos_bootcmd run copy_img && setenv bootargs quiet console=\$consoledev,\$baudrate && bootm \$loadaddr
 EOF
 ) > /tmp/env.txt
