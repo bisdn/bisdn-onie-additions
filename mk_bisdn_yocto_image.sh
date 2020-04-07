@@ -84,6 +84,8 @@ cp ./bisdn/installer/sharch_body.sh $output_file || {
 }
 
 # Replace variables in the sharch template
+build_date=`date +%Y-%m-%d`
+sed -i -e "s/%%BUILD_DATE%%/$build_date/" $output_file
 sed -i -e "s/%%IMAGE_SHA1%%/$sha1/" $output_file
 echo -n "."
 cat $sharch >> $output_file
