@@ -7,11 +7,6 @@
 
 set -e
 
-cd $(dirname $0)
-. ./machine.conf
-
-echo "BISDN Linux Installer: platform: $platform"
-
 check_platform() {
 	/bin/true
 }
@@ -25,29 +20,38 @@ hw_load() {
     echo "cp.b $img_start \$loadaddr $img_sz"
 }
 
-. ./platform.conf
+platform_install()
+{
+    cd $(dirname $0)
+    . ./machine.conf
 
-check_platform
+    echo "BISDN Linux Installer: platform: $platform"
 
-install_uimage
+    . ./platform.conf
 
-hw_load_str="$(hw_load)"
+    check_platform
 
-echo "Updating U-Boot environment variables"
-(cat <<EOF
+    install_uimage
+
+    hw_load_str="$(hw_load)"
+
+    echo "Updating U-Boot environment variables"
+    (cat <<EOF
 hw_load $hw_load_str
 copy_img echo "Loading BISDN Linux $platform image..." && run hw_load
 nos_bootcmd run copy_img && setenv bootargs quiet console=\$consoledev,\$baudrate && bootm \$loadaddr
 EOF
-) > /tmp/env.txt
+    ) > /tmp/env.txt
 
-fw_setenv -f -s /tmp/env.txt
+    fw_setenv -f -s /tmp/env.txt
 
-cd /
+    cd /
 
-# Set NOS mode if available.  For manufacturing diag installers, you
-# probably want to skip this step so that the system remains in ONIE
-# "installer" mode for installing a true NOS later.
-if [ -x /bin/onie-nos-mode ] ; then
-    /bin/onie-nos-mode -s
-fi
+    # Set NOS mode if available.  For manufacturing diag installers, you
+    # probably want to skip this step so that the system remains in ONIE
+    # "installer" mode for installing a true NOS later.
+    if [ -x /bin/onie-nos-mode ] ; then
+        /bin/onie-nos-mode -s
+    fi
+}
+platform_install
