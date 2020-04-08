@@ -66,9 +66,9 @@ create_bisdn_linux_gpt_partition()
     # See if BISDN Linux partition already exists
     bisdn_linux_part=$(sgdisk -p $blk_dev | grep "$bisdn_linux_volume_label" | awk '{print $1}')
     if [ -n "$bisdn_linux_part" ] ; then
-	# backup existing config
+        # backup existing config
         backup_cfg $blk_dev $bisdn_linux_part
-	# delete existing partition
+        # delete existing partition
         sgdisk -d $bisdn_linux_part $blk_dev || {
             echo "Error: Unable to delete partition $bisdn_linux_part on $blk_dev"
             exit 1
@@ -213,146 +213,148 @@ bisdn_linux_install_uefi_grub()
 
 }
 
-cd $(dirname $0)
-. ./machine.conf
+platform_install()
+{
+    cd $(dirname $0)
+    . ./machine.conf
 
-echo "BISDN Linux Installer: platform: $platform"
+    echo "BISDN Linux Installer: platform: $platform"
 
-# Install BISDN Linux on same block device as ONIE
-blk_dev=$(blkid | grep ONIE-BOOT | awk '{print $1}' |  sed -e 's/[1-9][0-9]*:.*$//' | sed -e 's/\([0-9]\)\(p\)/\1/' | head -n 1)
+    # Install BISDN Linux on same block device as ONIE
+    blk_dev=$(blkid | grep ONIE-BOOT | awk '{print $1}' |  sed -e 's/[1-9][0-9]*:.*$//' | sed -e 's/\([0-9]\)\(p\)/\1/' | head -n 1)
 
-[ -b "$blk_dev" ] || {
-    echo "Error: Unable to determine block device of ONIE install"
-    exit 1
-}
+    [ -b "$blk_dev" ] || {
+        echo "Error: Unable to determine block device of ONIE install"
+        exit 1
+    }
 
-bisdn_linux_volume_label="BISDN-Linux"
+    bisdn_linux_volume_label="BISDN-Linux"
 
-# auto-detect whether BIOS or UEFI
-if [ -d "/sys/firmware/efi/efivars" ] ; then
-    firmware="uefi"
-else
-    firmware="bios"
-fi
+    # auto-detect whether BIOS or UEFI
+    if [ -d "/sys/firmware/efi/efivars" ] ; then
+        firmware="uefi"
+    else
+        firmware="bios"
+    fi
 
-# determine ONIE partition type
-onie_partition_type=$(onie-sysinfo -t)
-# BISDN Linux partition size in MB
-bisdn_linux_part_size=4096
-if [ "$firmware" = "uefi" ] ; then
-    create_bisdn_linux_partition="create_bisdn_linux_uefi_partition"
-elif [ "$onie_partition_type" = "gpt" ] ; then
-    create_bisdn_linux_partition="create_bisdn_linux_gpt_partition"
-elif [ "$onie_partition_type" = "msdos" ] ; then
-    create_bisdn_linux_partition="create_bisdn_linux_msdos_partition"
-else
-    echo "ERROR: Unsupported partition type: $onie_partition_type"
-    exit 1
-fi
+    # determine ONIE partition type
+    onie_partition_type=$(onie-sysinfo -t)
+    # BISDN Linux partition size in MB
+    bisdn_linux_part_size=4096
+    if [ "$firmware" = "uefi" ] ; then
+        create_bisdn_linux_partition="create_bisdn_linux_uefi_partition"
+    elif [ "$onie_partition_type" = "gpt" ] ; then
+        create_bisdn_linux_partition="create_bisdn_linux_gpt_partition"
+    elif [ "$onie_partition_type" = "msdos" ] ; then
+        create_bisdn_linux_partition="create_bisdn_linux_msdos_partition"
+    else
+        echo "ERROR: Unsupported partition type: $onie_partition_type"
+        exit 1
+    fi
 
-[ -n $DEBUG ] && echo "DEBUG: onie_partition_type=${onie_partition_type}"
-[ -n $DEBUG ] && echo "DEBUG: firmware=${firmware}"
+    [ -n $DEBUG ] && echo "DEBUG: onie_partition_type=${onie_partition_type}"
+    [ -n $DEBUG ] && echo "DEBUG: firmware=${firmware}"
 
-# do only restore if backup has been created
-DO_RESTORE=false
+    # do only restore if backup has been created
+    DO_RESTORE=false
 
 
-eval $create_bisdn_linux_partition $blk_dev
-bisdn_linux_dev=$(part_blk_dev $blk_dev $bisdn_linux_part)
-partprobe
-fs_type="ext4"
+    eval $create_bisdn_linux_partition $blk_dev
+    bisdn_linux_dev=$(part_blk_dev $blk_dev $bisdn_linux_part)
+    partprobe
+    fs_type="ext4"
 
-[ -n $DEBUG ] && echo "DEBUG: bisdn_linux_dev=${bisdn_linux_dev}"
-[ -n $DEBUG ] && echo "DEBUG: fs_type=${fs_type}"
+    [ -n $DEBUG ] && echo "DEBUG: bisdn_linux_dev=${bisdn_linux_dev}"
+    [ -n $DEBUG ] && echo "DEBUG: fs_type=${fs_type}"
 
-# Create filesystem on BISDN Linux partition with a label
-mkfs.$fs_type -L $bisdn_linux_volume_label $bisdn_linux_dev || {
-    echo "Error: Unable to create file system on $bisdn_linux_dev"
-    exit 1
-}
+    # Create filesystem on BISDN Linux partition with a label
+    mkfs.$fs_type -L $bisdn_linux_volume_label $bisdn_linux_dev || {
+        echo "Error: Unable to create file system on $bisdn_linux_dev"
+        exit 1
+    }
 
-bisdn_linux_part_uuid=$(blkid | grep 'LABEL="'$bisdn_linux_volume_label'"' | sed -e 's/^.*UUID="//' -e 's/".*//')
+    bisdn_linux_part_uuid=$(blkid | grep 'LABEL="'$bisdn_linux_volume_label'"' | sed -e 's/^.*UUID="//' -e 's/".*//')
 
-[ -n $DEBUG ] && echo "DEBUG: bisdn_linux_part_uuid=${bisdn_linux_part_uuid}"
-[ -n $DEBUG ] && echo "DEBUG: bisdn_linux_part=${bisdn_linux_part}"
+    [ -n $DEBUG ] && echo "DEBUG: bisdn_linux_part_uuid=${bisdn_linux_part_uuid}"
+    [ -n $DEBUG ] && echo "DEBUG: bisdn_linux_part=${bisdn_linux_part}"
 
-# Mount BISDN Linux filesystem
-bisdn_linux_mnt=$(mktemp -d) || {
-    echo "Error: Unable to create BISDN Linux file system mount point"
-    exit 1
-}
-mount -t $fs_type -o defaults,rw $bisdn_linux_dev $bisdn_linux_mnt || {
-    echo "Error: Unable to mount $bisdn_linux_dev on $bisdn_linux_mnt"
-    exit 1
-}
-
-# install fs
-if [ -f rootfs.cpio.gz ] ; then
-    image_archive=$(realpath rootfs.cpio.gz)
-    cd $bisdn_linux_mnt
-    zcat $image_archive | cpio -i
-    cd -
-elif [ -f "rootfs.$fs_type" ] ; then
-    umount $bisdn_linux_mnt
-    dd if=rootfs.$fs_type of=$bisdn_linux_dev
+    # Mount BISDN Linux filesystem
+    bisdn_linux_mnt=$(mktemp -d) || {
+        echo "Error: Unable to create BISDN Linux file system mount point"
+        exit 1
+    }
     mount -t $fs_type -o defaults,rw $bisdn_linux_dev $bisdn_linux_mnt || {
         echo "Error: Unable to mount $bisdn_linux_dev on $bisdn_linux_mnt"
         exit 1
     }
-elif [ -f rootfs.tar.xz ] ; then
-    xzcat rootfs.tar.xz | tar xf - -C $bisdn_linux_mnt
-    if [ ! -f $bisdn_linux_mnt/boot/bzImage ] ; then
-	echo "Error: No kernel image in root fs"
-	exit 1
+
+    # install fs
+    if [ -f rootfs.cpio.gz ] ; then
+        image_archive=$(realpath rootfs.cpio.gz)
+        cd $bisdn_linux_mnt
+        zcat $image_archive | cpio -i
+        cd -
+    elif [ -f "rootfs.$fs_type" ] ; then
+        umount $bisdn_linux_mnt
+        dd if=rootfs.$fs_type of=$bisdn_linux_dev
+        mount -t $fs_type -o defaults,rw $bisdn_linux_dev $bisdn_linux_mnt || {
+            echo "Error: Unable to mount $bisdn_linux_dev on $bisdn_linux_mnt"
+            exit 1
+        }
+    elif [ -f rootfs.tar.xz ] ; then
+        xzcat rootfs.tar.xz | tar xf - -C $bisdn_linux_mnt
+        if [ ! -f $bisdn_linux_mnt/boot/bzImage ] ; then
+        echo "Error: No kernel image in root fs"
+        exit 1
+        fi
+        if [ ! -f $bisdn_linux_mnt/lib/systemd/systemd ] ; then
+        echo "Error: No systemd found in root fs"
+        exit 1
+        fi
+    else
+        echo "Error: Invalid root fs"
+        exit 1
     fi
-    if [ ! -f $bisdn_linux_mnt/lib/systemd/systemd ] ; then
-	echo "Error: No systemd found in root fs"
-	exit 1
+
+    #[ -f bzImage ] && cp bzImage $bisdn_linux_mnt/boot/
+    #[ -f initramfs ] && cp initramfs $bisdn_linux_mnt/boot/
+    #[ -f modules.tgz ] && tar xzf modules.tgz -C $bisdn_linux_mnt
+
+    # update fstab
+    #sed -ie "s#rootfs#${bisdn_linux_dev}#" $bisdn_linux_mnt/etc/fstab
+
+    # store installation log in BISDN Linux file system
+    onie-support $bisdn_linux_mnt
+
+    if [ "$firmware" = "uefi" ] ; then
+        bisdn_linux_install_uefi_grub "$bisdn_linux_mnt/boot" "$blk_dev"
+    else
+        bisdn_linux_install_grub "$bisdn_linux_mnt/boot" "$blk_dev"
     fi
-else
-    echo "Error: Invalid root fs"
-    exit 1
-fi
 
-#[ -f bzImage ] && cp bzImage $bisdn_linux_mnt/boot/
-#[ -f initramfs ] && cp initramfs $bisdn_linux_mnt/boot/
-#[ -f modules.tgz ] && tar xzf modules.tgz -C $bisdn_linux_mnt
+    # Create a minimal grub.cfg that allows for:
+    #   - configure the serial console
+    #   - allows for grub-reboot to work
+    #   - a menu entry for the BISDN Linux OS
+    #   - menu entries for ONIE
 
-# update fstab
-#sed -ie "s#rootfs#${bisdn_linux_dev}#" $bisdn_linux_mnt/etc/fstab
+    grub_cfg=$(mktemp)
 
-# store installation log in BISDN Linux file system
-onie-support $bisdn_linux_mnt
+    # Set a few GRUB_xxx environment variables that will be picked up and
+    # used by the 50_onie_grub script.  This is similiar to what an OS
+    # would specify in /etc/default/grub.
+    #
+    # GRUB_SERIAL_COMMAND
+    # GRUB_CMDLINE_LINUX
 
-if [ "$firmware" = "uefi" ] ; then
-    bisdn_linux_install_uefi_grub "$bisdn_linux_mnt/boot" "$blk_dev"
-else
-    bisdn_linux_install_grub "$bisdn_linux_mnt/boot" "$blk_dev"
-fi
+    [ -r ./platform.conf ] && . ./platform.conf
 
-# Create a minimal grub.cfg that allows for:
-#   - configure the serial console
-#   - allows for grub-reboot to work
-#   - a menu entry for the BISDN Linux OS
-#   - menu entries for ONIE
+    export GRUB_SERIAL_COMMAND
+    export GRUB_CMDLINE_LINUX
+    export EXTRA_CMDLINE_LINUX
 
-grub_cfg=$(mktemp)
-
-# Set a few GRUB_xxx environment variables that will be picked up and
-# used by the 50_onie_grub script.  This is similiar to what an OS
-# would specify in /etc/default/grub.
-#
-# GRUB_SERIAL_COMMAND
-# GRUB_CMDLINE_LINUX
-
-[ -r ./platform.conf ] && . ./platform.conf
-
-export GRUB_SERIAL_COMMAND
-export GRUB_CMDLINE_LINUX
-export EXTRA_CMDLINE_LINUX
-
-# Add common configuration, like the timeout and serial console.
-(cat <<EOF
+    # Add common configuration, like the timeout and serial console.
+    (cat <<EOF
 $GRUB_SERIAL_COMMAND
 terminal_input serial
 terminal_output serial
@@ -360,10 +362,10 @@ terminal_output serial
 set timeout=5
 
 EOF
-) > $grub_cfg
+    ) > $grub_cfg
 
-# Add the logic to support grub-reboot
-(cat <<EOF
+    # Add the logic to support grub-reboot
+    (cat <<EOF
 if [ -s \$prefix/grubenv ]; then
   load_env
 fi
@@ -385,9 +387,9 @@ if [ "\${prev_saved_entry}" ]; then
 fi
 
 EOF
-) >> $grub_cfg
+    ) >> $grub_cfg
 
-(cat <<EOF
+    (cat <<EOF
 onie_partition_type=${onie_partition_type}
 export onie_partition_type
 
@@ -404,13 +406,13 @@ function entry_start {
 }
 
 EOF
-) >> $grub_cfg
+    ) >> $grub_cfg
 
-# Add a menu entry for the BISDN Linux OS
-bisdn_linux_grub_entry="BISDN Linux"
-part_unique_guid=$(sgdisk -i ${bisdn_linux_part} /dev/sda | grep 'Partition unique GUID' | cut -d\  -f 4)
-# XXX eventually s/rootwait/rootdelay/
-(cat <<EOF
+    # Add a menu entry for the BISDN Linux OS
+    bisdn_linux_grub_entry="BISDN Linux"
+    part_unique_guid=$(sgdisk -i ${bisdn_linux_part} /dev/sda | grep 'Partition unique GUID' | cut -d\  -f 4)
+    # XXX eventually s/rootwait/rootdelay/
+    (cat <<EOF
 menuentry '$bisdn_linux_grub_entry' {
         entry_start
         search --no-floppy --fs-uuid --set=root $bisdn_linux_part_uuid
@@ -418,24 +420,26 @@ menuentry '$bisdn_linux_grub_entry' {
         linux   /boot/bzImage $GRUB_CMDLINE_LINUX rootfstype=${fs_type} root=PARTUUID=${part_unique_guid} rootwait $EXTRA_CMDLINE_LINUX
 }
 EOF
-) >> $grub_cfg
+    ) >> $grub_cfg
 
-# Add menu entries for ONIE -- use the grub fragment provided by the
-# ONIE distribution.
-/mnt/onie-boot/onie/grub.d/50_onie_grub >> $grub_cfg
+    # Add menu entries for ONIE -- use the grub fragment provided by the
+    # ONIE distribution.
+    /mnt/onie-boot/onie/grub.d/50_onie_grub >> $grub_cfg
 
-cp $grub_cfg $bisdn_linux_mnt/boot/grub/grub.cfg
+    cp $grub_cfg $bisdn_linux_mnt/boot/grub/grub.cfg
 
-# Restore the network configuration from previous installation
-if [ "${DO_RESTORE}" = true ]; then
-  echo "Restoring backup of existing management configuration"
-  cp -r $backup_tmp_dir/$network/* $bisdn_linux_mnt/$network
-fi;
+    # Restore the network configuration from previous installation
+    if [ "${DO_RESTORE}" = true ]; then
+      echo "Restoring backup of existing management configuration"
+      cp -r $backup_tmp_dir/$network/* $bisdn_linux_mnt/$network
+    fi;
 
-# clean up
-umount $bisdn_linux_mnt || {
-    echo "Error: Problems umounting $bisdn_linux_mnt"
+    # clean up
+    umount $bisdn_linux_mnt || {
+        echo "Error: Problems umounting $bisdn_linux_mnt"
+    }
+
+    cd /
 }
 
-cd /
-
+platform_install
