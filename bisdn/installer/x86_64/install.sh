@@ -9,19 +9,6 @@ set -e
 
 DEBUG=1
 
-cd $(dirname $0)
-. ./machine.conf
-
-echo "BISDN Linux Installer: platform: $platform"
-
-# Install BISDN Linux on same block device as ONIE
-blk_dev=$(blkid | grep ONIE-BOOT | awk '{print $1}' |  sed -e 's/[1-9][0-9]*:.*$//' | sed -e 's/\([0-9]\)\(p\)/\1/' | head -n 1)
-
-[ -b "$blk_dev" ] || {
-    echo "Error: Unable to determine block device of ONIE install"
-    exit 1
-}
-
 part_blk_dev() {
     case "$1" in
         *mmcblk*|*nvme*)
@@ -32,36 +19,6 @@ part_blk_dev() {
             ;;
     esac
 }
-
-bisdn_linux_volume_label="BISDN-Linux"
-
-# auto-detect whether BIOS or UEFI
-if [ -d "/sys/firmware/efi/efivars" ] ; then
-    firmware="uefi"
-else
-    firmware="bios"
-fi
-
-# determine ONIE partition type
-onie_partition_type=$(onie-sysinfo -t)
-# BISDN Linux partition size in MB
-bisdn_linux_part_size=4096
-if [ "$firmware" = "uefi" ] ; then
-    create_bisdn_linux_partition="create_bisdn_linux_uefi_partition"
-elif [ "$onie_partition_type" = "gpt" ] ; then
-    create_bisdn_linux_partition="create_bisdn_linux_gpt_partition"
-elif [ "$onie_partition_type" = "msdos" ] ; then
-    create_bisdn_linux_partition="create_bisdn_linux_msdos_partition"
-else
-    echo "ERROR: Unsupported partition type: $onie_partition_type"
-    exit 1
-fi
-
-[ -n $DEBUG ] && echo "DEBUG: onie_partition_type=${onie_partition_type}"
-[ -n $DEBUG ] && echo "DEBUG: firmware=${firmware}"
-
-# do only restore if backup has been created
-DO_RESTORE=false
 
 # Creates a backup of current network configuration files
 #
@@ -255,6 +212,50 @@ bisdn_linux_install_uefi_grub()
     }
 
 }
+
+cd $(dirname $0)
+. ./machine.conf
+
+echo "BISDN Linux Installer: platform: $platform"
+
+# Install BISDN Linux on same block device as ONIE
+blk_dev=$(blkid | grep ONIE-BOOT | awk '{print $1}' |  sed -e 's/[1-9][0-9]*:.*$//' | sed -e 's/\([0-9]\)\(p\)/\1/' | head -n 1)
+
+[ -b "$blk_dev" ] || {
+    echo "Error: Unable to determine block device of ONIE install"
+    exit 1
+}
+
+bisdn_linux_volume_label="BISDN-Linux"
+
+# auto-detect whether BIOS or UEFI
+if [ -d "/sys/firmware/efi/efivars" ] ; then
+    firmware="uefi"
+else
+    firmware="bios"
+fi
+
+# determine ONIE partition type
+onie_partition_type=$(onie-sysinfo -t)
+# BISDN Linux partition size in MB
+bisdn_linux_part_size=4096
+if [ "$firmware" = "uefi" ] ; then
+    create_bisdn_linux_partition="create_bisdn_linux_uefi_partition"
+elif [ "$onie_partition_type" = "gpt" ] ; then
+    create_bisdn_linux_partition="create_bisdn_linux_gpt_partition"
+elif [ "$onie_partition_type" = "msdos" ] ; then
+    create_bisdn_linux_partition="create_bisdn_linux_msdos_partition"
+else
+    echo "ERROR: Unsupported partition type: $onie_partition_type"
+    exit 1
+fi
+
+[ -n $DEBUG ] && echo "DEBUG: onie_partition_type=${onie_partition_type}"
+[ -n $DEBUG ] && echo "DEBUG: firmware=${firmware}"
+
+# do only restore if backup has been created
+DO_RESTORE=false
+
 
 eval $create_bisdn_linux_partition $blk_dev
 bisdn_linux_dev=$(part_blk_dev $blk_dev $bisdn_linux_part)
