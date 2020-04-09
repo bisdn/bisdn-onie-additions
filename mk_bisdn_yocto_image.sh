@@ -90,7 +90,7 @@ cat $sharch >> $output_file
 rm -rf $tmp_dir
 echo " Done."
 
-echo "Success:  Demo install image is ready in ${output_file}:"
+echo "Success:  BISDN Linux install image is ready in ${output_file}:"
 ls -l ${output_file}
 
 clean_up 0
