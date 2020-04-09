@@ -54,4 +54,3 @@ EOF
         /bin/onie-nos-mode -s
     fi
 }
-platform_install
