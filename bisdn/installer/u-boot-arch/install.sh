@@ -7,9 +7,7 @@
 
 set -e
 
-check_platform() {
-	/bin/true
-}
+BISDN_ENABLE_NOS_MODE=1
 
 install_uimage() {
     echo "Copying uImage to NOR flash:"
@@ -20,20 +18,59 @@ hw_load() {
     echo "cp.b $img_start \$loadaddr $img_sz"
 }
 
-platform_install()
+platform_erase_disk()
 {
-    cd $(dirname $0)
-    . ./machine.conf
+    local blk_dev="$1"
+    local oIFS part parts part_num part_label
 
-    echo "BISDN Linux Installer: platform: $platform"
+    oIFS=$IFS
+    IFS="
+"
+    # remove all other NOS partitions
 
-    . ./platform.conf
+    # ugly: find a better way to get only partitions
+    parts="$(sgdisk -p /dev/sda | grep '^ ' || true)"
+    for part in $parts; do
+        part_num="$(echo $part | awk '{print $1}')"
+        part_label="$(echo $part | awk '{print $7}')"
 
-    check_platform
+        # keep diag partition intact
+        [ -n "$DIAG_PART_NAME" ] && [ "$part_label" = "$DIAG_PART_NAME" ] && continue
+        echo "removing partition $blk_dev$part_num ($part_label)"
+        sgdisk -d $part_num $blk_dev || {
+           echo "Error: unable to delete partition $part_num on $blk_dev"
+           exit 1
+        }
+    done
+    IFS=$oIFS
+    partprobe
+}
 
-    install_uimage
+platform_get_firmware_type()
+{
+	echo "u-boot"
+}
 
-    hw_load_str="$(hw_load)"
+. ./platform.conf
+
+platform_install_bootloader_entry()
+{
+    local blk_dev=$1
+    local bisdn_linux_part=$2
+    local bisdn_linux_mnt=$3
+
+    if [ -f fitImage ]; then
+	cp fitImage $bisdn_linux_mnt/boot/uImage
+    fi
+
+    if [ ! -f $bisdn_linux_mnt/boot/uImage ]; then
+        echo "Error: No kernel image in root fs"
+        exit 1
+    fi
+
+    machine_fixups
+
+    hw_load_str="$(hw_load $blk_dev $bisdn_linux_part)"
 
     echo "Updating U-Boot environment variables"
     (cat <<EOF
@@ -44,13 +81,4 @@ EOF
     ) > /tmp/env.txt
 
     fw_setenv -f -s /tmp/env.txt
-
-    cd /
-
-    # Set NOS mode if available.  For manufacturing diag installers, you
-    # probably want to skip this step so that the system remains in ONIE
-    # "installer" mode for installing a true NOS later.
-    if [ -x /bin/onie-nos-mode ] ; then
-        /bin/onie-nos-mode -s
-    fi
 }
