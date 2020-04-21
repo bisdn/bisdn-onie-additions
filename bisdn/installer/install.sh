@@ -237,120 +237,113 @@ platform_install_bootloader_entry()
     /bin/true
 }
 
-platform_install()
-{
-    local part_size=${BISDN_PART_SIZE:-4096}
-    local fs_type="${BISDN_FS_TYPE:-ext4}"
-    local blk_dev old_part bisdn_linux_part bisdn_linux_dev bisdn_linux_mnt
-
-    cd $(dirname $0)
-    . ./machine.conf
-
-    echo "BISDN Linux Installer: platform: $platform"
-
-    platform_check
-
-    boot_dev=$(platform_detect_boot_device)
-    [ -n "$boot_dev" ] || {
-	echo "ERROR: failed to detect boot device!" >&2
-    }
-    # determine ONIE partition type
-    onie_partition_type=$(onie-sysinfo -t)
-    # determine ONIE firmware type
-    onie_firmware_type=$(platform_get_firmware_type)
-
-    if [ "$onie_partition_type" = "gpt" ] ; then
-        detect_bisdn_linux_partition="detect_bisdn_linux_gpt_partition"
-        create_bisdn_linux_partition="create_bisdn_linux_gpt_partition"
-        delete_bisdn_linux_partition="delete_bisdn_linux_gpt_partition"
-    elif [ "$onie_partition_type" = "msdos" ] ; then
-        detect_bisdn_linux_partition="detect_bisdn_linux_msdos_partition"
-        create_bisdn_linux_partition="create_bisdn_linux_msdos_partition"
-        delete_bisdn_linux_partition="delete_bisdn_linux_msdos_partition"
-    else
-        echo "ERROR: Unsupported partition type: $onie_partition_type" >&2
-        exit 1
-    fi
-
-    [ -n $DEBUG ] && echo "DEBUG: onie_partition_type=${onie_partition_type}" >&2
-    [ -n $DEBUG ] && echo "DEBUG: firmware=${onie_firmware_type}" >&2
-
-    # do only restore if backup has been created
-    DO_RESTORE=false
-
-    # See if BISDN Linux partition already exists
-    old_part=$(eval $detect_bisdn_linux_partition $blk_dev)
-    if [ -n "$old_part" ]; then
-        # backup existing config
-        backup_cfg $blk_dev $old_part
-        # delete existing partition
-        eval $delete_bisdn_linux_partition $blk_dev $old_part
-    fi
-
-    platform_erase_disk
-
-    bisdn_linux_part=$(eval $create_bisdn_linux_partition $blk_dev $part_size)
-    bisdn_linux_dev=$(part_blk_dev $blk_dev $bisdn_linux_part)
-
-    [ -n $DEBUG ] && echo "DEBUG: bisdn_linux_dev=${bisdn_linux_dev}"
-    [ -n $DEBUG ] && echo "DEBUG: fs_type=${fs_type}"
-
-    # Mount BISDN Linux filesystem
-    bisdn_linux_mnt=$(mktemp -d) || {
-        echo "Error: Unable to create BISDN Linux file system mount point" >&2
-        exit 1
-    }
-
-    # Create filesystem on BISDN Linux partition with a label
-    mkfs.$fs_type -L $BISDN_LINUX_VOLUME_LABEL $bisdn_linux_dev || {
-        echo "Error: Unable to create file system on $bisdn_linux_dev" >&2
-        exit 1
-    }
-
-    mount -t $fs_type -o defaults,rw $bisdn_linux_dev $bisdn_linux_mnt || {
-        echo "Error: Unable to mount $bisdn_linux_dev on $bisdn_linux_mnt" >&2
-        exit 1
-    }
-
-    # install fs
-    if [ -f rootfs.cpio.gz ] ; then
-        image_archive=$(realpath rootfs.cpio.gz)
-        cd $bisdn_linux_mnt
-        zcat $image_archive | cpio -i
-        cd -
-    elif [ -f rootfs.tar.xz ] ; then
-        xzcat rootfs.tar.xz | tar xf - -C $bisdn_linux_mnt
-    else
-        echo "Error: Invalid root fs" >&2
-        exit 1
-    fi
-
-    # store installation log in BISDN Linux file system
-    onie-support $bisdn_linux_mnt
-
-    # activate the installation
-    platform_install_bootloader_entry $blk_dev $bisdn_linux_part $bisdn_linux_mnt $fs_type
-
-    # Restore the network configuration from previous installation
-    if [ "${DO_RESTORE}" = true ]; then
-	restore_cfg $backup_tmp_dir $bisdn_linux_mnt
-    fi;
-
-    # clean up
-    umount $bisdn_linux_mnt || {
-        echo "Warning: Problems umounting $bisdn_linux_mnt" >&2
-    }
-
-    cd /
-
-    # Set NOS mode if available.  For manufacturing diag installers, you
-    # probably want to skip this step so that the system remains in ONIE
-    # "installer" mode for installing a true NOS later.
-    if [ "$BISDN_ENABLE_NOS_MODE" = "1" ] && [ -x /bin/onie-nos-mode ] ; then
-        /bin/onie-nos-mode -s
-    fi
-}
-
+cd $(dirname $0)
+. ./machine.conf
 . ./platform.sh
 
-platform_install
+echo "BISDN Linux Installer: platform: $platform"
+
+part_size=${BISDN_PART_SIZE:-4096}
+fs_type="${BISDN_FS_TYPE:-ext4}"
+
+platform_check
+
+boot_dev=$(platform_detect_boot_device)
+[ -n "$boot_dev" ] || {
+    echo "ERROR: failed to detect boot device!" >&2
+}
+# determine ONIE partition type
+onie_partition_type=$(onie-sysinfo -t)
+# determine ONIE firmware type
+onie_firmware_type=$(platform_get_firmware_type)
+
+if [ "$onie_partition_type" = "gpt" ] ; then
+    detect_bisdn_linux_partition="detect_bisdn_linux_gpt_partition"
+    create_bisdn_linux_partition="create_bisdn_linux_gpt_partition"
+    delete_bisdn_linux_partition="delete_bisdn_linux_gpt_partition"
+elif [ "$onie_partition_type" = "msdos" ] ; then
+    detect_bisdn_linux_partition="detect_bisdn_linux_msdos_partition"
+    create_bisdn_linux_partition="create_bisdn_linux_msdos_partition"
+    delete_bisdn_linux_partition="delete_bisdn_linux_msdos_partition"
+else
+    echo "ERROR: Unsupported partition type: $onie_partition_type" >&2
+    exit 1
+fi
+
+[ -n $DEBUG ] && echo "DEBUG: onie_partition_type=${onie_partition_type}" >&2
+[ -n $DEBUG ] && echo "DEBUG: firmware=${onie_firmware_type}" >&2
+
+# do only restore if backup has been created
+DO_RESTORE=false
+
+# See if BISDN Linux partition already exists
+old_part=$(eval $detect_bisdn_linux_partition $boot_dev)
+if [ -n "$old_part" ]; then
+    # backup existing config
+    backup_cfg $boot_dev $old_part
+    # delete existing partition
+    eval $delete_bisdn_linux_partition $boot_dev $old_part
+fi
+
+platform_erase_disk
+
+bisdn_linux_part=$(eval $create_bisdn_linux_partition $boot_dev $part_size)
+bisdn_linux_dev=$(part_blk_dev $boot_dev $bisdn_linux_part)
+
+[ -n $DEBUG ] && echo "DEBUG: bisdn_linux_dev=${bisdn_linux_dev}"
+[ -n $DEBUG ] && echo "DEBUG: fs_type=${fs_type}"
+
+# Mount BISDN Linux filesystem
+bisdn_linux_mnt=$(mktemp -d) || {
+    echo "Error: Unable to create BISDN Linux file system mount point" >&2
+    exit 1
+}
+
+# Create filesystem on BISDN Linux partition with a label
+mkfs.$fs_type -L $BISDN_LINUX_VOLUME_LABEL $bisdn_linux_dev || {
+    echo "Error: Unable to create file system on $bisdn_linux_dev" >&2
+    exit 1
+}
+
+mount -t $fs_type -o defaults,rw $bisdn_linux_dev $bisdn_linux_mnt || {
+    echo "Error: Unable to mount $bisdn_linux_dev on $bisdn_linux_mnt" >&2
+    exit 1
+}
+
+# install fs
+if [ -f rootfs.cpio.gz ] ; then
+    image_archive=$(realpath rootfs.cpio.gz)
+    cd $bisdn_linux_mnt
+    zcat $image_archive | cpio -i
+    cd -
+elif [ -f rootfs.tar.xz ] ; then
+    xzcat rootfs.tar.xz | tar xf - -C $bisdn_linux_mnt
+else
+    echo "Error: Invalid root fs" >&2
+    exit 1
+fi
+
+# store installation log in BISDN Linux file system
+onie-support $bisdn_linux_mnt
+
+# activate the installation
+platform_install_bootloader_entry $boot_dev $bisdn_linux_part $bisdn_linux_mnt $fs_type
+
+# Restore the network configuration from previous installation
+if [ "${DO_RESTORE}" = true ]; then
+    restore_cfg $backup_tmp_dir $bisdn_linux_mnt
+fi;
+
+# clean up
+umount $bisdn_linux_mnt || {
+    echo "Warning: Problems umounting $bisdn_linux_mnt" >&2
+}
+
+cd /
+
+# Set NOS mode if available.  For manufacturing diag installers, you
+# probably want to skip this step so that the system remains in ONIE
+# "installer" mode for installing a true NOS later.
+if [ "$BISDN_ENABLE_NOS_MODE" = "1" ] && [ -x /bin/onie-nos-mode ] ; then
+    /bin/onie-nos-mode -s
+fi
