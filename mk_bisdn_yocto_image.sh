@@ -57,7 +57,8 @@ tmp_dir=$(mktemp --directory)
 tmp_installdir="$tmp_dir/installer"
 mkdir $tmp_installdir || clean_up 1
 
-cp ./bisdn/installer/${BISDN_ARCH}/install.sh $tmp_installdir || clean_up 1
+cp ./bisdn/installer/${BISDN_ARCH}/install.sh $tmp_installdir/platform.sh || clean_up 1
+cp ./bisdn/installer/install.sh $tmp_installdir || clean_up 1
 
 cp $* $tmp_installdir || clean_up 1
 echo -n "."
