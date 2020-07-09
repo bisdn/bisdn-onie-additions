@@ -43,7 +43,7 @@ platform_erase_disk()
         }
     done
     IFS=$oIFS
-    partprobe
+    partprobe $blk_dev
 }
 
 platform_get_firmware_type()
