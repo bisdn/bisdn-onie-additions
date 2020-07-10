@@ -100,7 +100,7 @@ delete_bisdn_linux_gpt_partition()
         echo "Error: Unable to delete partition $part_num on $blk_dev" >&2
         exit 1
     }
-    partprobe
+    partprobe $blk_dev
 }
 
 # Creates a new partition for the BISDN Linux OS.
@@ -134,7 +134,7 @@ create_bisdn_linux_gpt_partition()
         echo "Error: Unable to create partition $part on $blk_dev" >&2
         exit 1
     }
-    partprobe
+    partprobe $blk_dev
 
     if [ "$onie_firmware_type" = "uefi" ] ; then
         # erase any related EFI BootOrder variables from NVRAM.
@@ -173,7 +173,7 @@ delete_bisdn_linux_msdos_partition()
         echo "Error: Unable to delete partition $part_num on $blk_dev" >&2
         exit 1
     }
-    partprobe
+    partprobe $blk_dev
 }
 
 # Creates a new partition for the BISDN Linux OS.
@@ -210,7 +210,7 @@ create_bisdn_linux_msdos_partition()
         echo "ERROR: Problems creating BISDN Linux msdos partition $part on: $blk_dev" >&2
         exit 1
     }
-    partprobe
+    partprobe $blk_dev
 
     echo "$part"
 }
