@@ -8,6 +8,8 @@ BISDN_LINUX_VOLUME_LABEL="BISDN-Linux"
 
 set -e
 
+. $(dirname "$0")/lib/backup.sh
+
 part_blk_dev() {
     case "$1" in
         *mmcblk*|*nvme*)
@@ -54,7 +56,13 @@ backup_cfg()
         exit 1
     }
 
-    if [ -d "$bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR" ] && grep -q -r "^Name=enp" $bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR; then
+    if [ ! -f "$bisdn_linux_old/$SYSTEM_BACKUP_FILE" ]; then
+        xzcat rootfs.tar.xz | tar xf - -C $bisdn_linux_old "./$SYSTEM_BACKUP_FILE"
+    fi
+
+    if [ -f "$bisdn_linux_old/$SYSTEM_BACKUP_FILE" ]; then
+        create_backup $bisdn_linux_old $backup_tmp_dir
+    elif [ -d "$bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR" ] && grep -q -r "^Name=enp" $bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR; then
         echo "Creating backup of existing management interface configuration"
         for file in $(grep -l -r "^Name=enp" $bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR); do
             case "$file" in
@@ -333,6 +341,10 @@ platform_install_bootloader_entry $boot_dev $bisdn_linux_part $bisdn_linux_mnt $
 if [ "${DO_RESTORE}" = true ]; then
     restore_cfg $backup_tmp_dir $bisdn_linux_mnt
 fi;
+
+if [ "${DO_RESTORE_NEW}" = true ]; then
+    restore_backup $backup_tmp_dir $bisdn_linux_mnt
+fi
 
 # clean up
 umount $bisdn_linux_mnt || {
