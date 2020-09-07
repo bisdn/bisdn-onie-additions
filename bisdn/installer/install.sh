@@ -61,21 +61,8 @@ backup_cfg()
         xzcat rootfs.tar.xz | tar xf - -C $bisdn_linux_old "./$SYSTEM_BACKUP_FILE"
     fi
 
-    if [ -f "$bisdn_linux_old/$SYSTEM_BACKUP_FILE" ]; then
-        echo "creating backup of existing configuration" >&2
-        create_backup $bisdn_linux_old $backup_tmp_dir
-    elif [ -d "$bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR" ] && grep -q -r "^Name=enp" $bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR; then
-        echo "Creating backup of existing management interface configuration"
-        for file in $(grep -l -r "^Name=enp" $bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR); do
-            case "$file" in
-                *.network)
-                    [ -n "$DEBUG" ] && echo "Backing up $file" >&2
-                    cp $file $backup_tmp_dir/$SYSTEMD_NETWORK_CONFDIR
-                    DO_RESTORE=true
-                    ;;
-            esac
-        done
-    fi
+    echo "creating backup of existing configuration" >&2
+    create_backup $bisdn_linux_old $backup_tmp_dir
 
     umount $bisdn_linux_old
 }
@@ -87,8 +74,8 @@ backup_cfg()
 
 restore_cfg()
 {
-    echo "Restoring backup of existing management configuration" >&2
-    cp -r $1/$SYSTEMD_NETWORK_CONFDIR/* $2/$SYSTEMD_NETWORK_CONFDIR
+    echo "Restoring backup of existing configuration" >&2
+    restore_backup $backup_tmp_dir $bisdn_linux_mnt
 }
 
 detect_bisdn_linux_gpt_partition()
@@ -343,11 +330,6 @@ platform_install_bootloader_entry $boot_dev $bisdn_linux_part $bisdn_linux_mnt $
 if [ "${DO_RESTORE}" = true ]; then
     restore_cfg $backup_tmp_dir $bisdn_linux_mnt
 fi;
-
-if [ "${DO_RESTORE_NEW}" = true ]; then
-    echo "restoring backup of existing configuration" >&2
-    restore_backup $backup_tmp_dir $bisdn_linux_mnt
-fi
 
 # clean up
 umount $bisdn_linux_mnt || {

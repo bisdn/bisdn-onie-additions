@@ -132,7 +132,7 @@ create_backup()
 	# step 4 - remove empty directories
 	find $2 -depth -type d -exec rmdir -p --ignore-fail-on-non-empty {} \;
 
-	DO_RESTORE_NEW=true
+	DO_RESTORE=true
 }
 
 # $1 backup storage dir $2 restore target
