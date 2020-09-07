@@ -57,10 +57,12 @@ backup_cfg()
     }
 
     if [ ! -f "$bisdn_linux_old/$SYSTEM_BACKUP_FILE" ]; then
+        echo "no backup configuration found, using default from installer" >&2
         xzcat rootfs.tar.xz | tar xf - -C $bisdn_linux_old "./$SYSTEM_BACKUP_FILE"
     fi
 
     if [ -f "$bisdn_linux_old/$SYSTEM_BACKUP_FILE" ]; then
+        echo "creating backup of existing configuration" >&2
         create_backup $bisdn_linux_old $backup_tmp_dir
     elif [ -d "$bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR" ] && grep -q -r "^Name=enp" $bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR; then
         echo "Creating backup of existing management interface configuration"
@@ -343,6 +345,7 @@ if [ "${DO_RESTORE}" = true ]; then
 fi;
 
 if [ "${DO_RESTORE_NEW}" = true ]; then
+    echo "restoring backup of existing configuration" >&2
     restore_backup $backup_tmp_dir $bisdn_linux_mnt
 fi
 
