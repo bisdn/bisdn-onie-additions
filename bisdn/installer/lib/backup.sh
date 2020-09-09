@@ -52,7 +52,7 @@ add_to_backup() {
 	[ -n "$DEBUG" ] && echo "DEBUG: adding $relpath to backup"
 
 	cp_path_with_attr "$(dirname $oldpath)" "$(dirname $newpath)"
-	cp -a "$oldpath" "$newpath"
+	cp -a "$oldpath" "$(dirname $newpath)"
 }
 
 # $1 path $2 src $3 dest
