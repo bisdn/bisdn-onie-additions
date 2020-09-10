@@ -8,6 +8,8 @@ BISDN_LINUX_VOLUME_LABEL="BISDN-Linux"
 
 set -e
 
+. $(dirname "$0")/lib/backup.sh
+
 part_blk_dev() {
     case "$1" in
         *mmcblk*|*nvme*)
@@ -54,18 +56,13 @@ backup_cfg()
         exit 1
     }
 
-    if [ -d "$bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR" ] && grep -q -r "^Name=enp" $bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR; then
-        echo "Creating backup of existing management interface configuration"
-        for file in $(grep -l -r "^Name=enp" $bisdn_linux_old/$SYSTEMD_NETWORK_CONFDIR); do
-            case "$file" in
-                *.network)
-                    [ -n "$DEBUG" ] && echo "Backing up $file" >&2
-                    cp $file $backup_tmp_dir/$SYSTEMD_NETWORK_CONFDIR
-                    DO_RESTORE=true
-                    ;;
-            esac
-        done
+    if [ ! -f "$bisdn_linux_old/$SYSTEM_BACKUP_FILE" ]; then
+        echo "no backup configuration found, using default from installer" >&2
+        xzcat rootfs.tar.xz | tar xf - -C $bisdn_linux_old "./$SYSTEM_BACKUP_FILE"
     fi
+
+    echo "creating backup of existing configuration" >&2
+    create_backup $bisdn_linux_old $backup_tmp_dir
 
     umount $bisdn_linux_old
 }
@@ -77,8 +74,8 @@ backup_cfg()
 
 restore_cfg()
 {
-    echo "Restoring backup of existing management configuration" >&2
-    cp -r $1/$SYSTEMD_NETWORK_CONFDIR/* $2/$SYSTEMD_NETWORK_CONFDIR
+    echo "Restoring backup of existing configuration" >&2
+    restore_backup $backup_tmp_dir $bisdn_linux_mnt
 }
 
 detect_bisdn_linux_gpt_partition()
