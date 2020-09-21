@@ -155,6 +155,6 @@ restore_backup()
 
     # now copy the files
     for file in $1/*; do
-	    cp -fPr $file $2
+	    cp -a $file $2
     done
 }
