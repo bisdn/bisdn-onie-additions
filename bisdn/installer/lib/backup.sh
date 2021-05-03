@@ -1,3 +1,10 @@
+#!/bin/sh
+
+# Copyright (C) 2020 BISDN GmbH
+# Author: Jonas Gorski <jonas.gorski@bisdn.de>
+#
+# SPDX-License-Identifier:     GPL-2.0
+
 SYSTEM_BACKUP_FILE="etc/default/system-backup.txt"
 USER_BACKUP_FILE="etc/default/user-backup.txt"
 BACKUP_SUFFIX="-default"
