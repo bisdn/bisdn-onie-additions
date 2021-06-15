@@ -58,6 +58,7 @@ platform_install_bootloader_entry()
     local blk_dev=$1
     local bisdn_linux_part=$2
     local bisdn_linux_mnt=$3
+    local separator=
 
     if [ -f fitImage ]; then
 	cp fitImage $bisdn_linux_mnt/boot/uImage
@@ -70,7 +71,13 @@ platform_install_bootloader_entry()
 
     machine_fixups
 
-    hw_load_str="$(hw_load $blk_dev $bisdn_linux_part)"
+    if grep -q "kernel@1" $bisdn_linux_mnt/boot/uImage; then
+        separator="@"
+    else
+        separator="-"
+    fi
+
+    hw_load_str="$(hw_load $blk_dev $bisdn_linux_part $separator)"
 
     echo "Updating U-Boot environment variables"
     (cat <<EOF
