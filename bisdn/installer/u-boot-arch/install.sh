@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Based on:
+# https://github.com/opencomputeproject/onie/blob/8f610cc0e9690182d4045f800dbcc4e021a4f843/demo/installer/u-boot-arch/install.sh
+
 #  Copyright (C) 2014,2015 Curt Brune <curt@cumulusnetworks.com>
 #  Copyright (C) 2015 david_yang <david_yang@accton.com>
 #
