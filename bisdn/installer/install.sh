@@ -236,22 +236,29 @@ platform_install_bootloader_entry()
 
 cd $(dirname $0)
 . ./machine.conf
+# platform.sh may override dummy functions above (e.g., platform_check)
 . ./platform.sh
 
 echo "BISDN Linux Installer: platform: $platform"
 
+# part_size: BISDN Linux partition in MB
 part_size=6144
 fs_type="${BISDN_FS_TYPE:-ext4}"
 
+# platform_check, if implemented, aborts with an error if the hardware platform
+# is not supported by our image
 platform_check
 
+# boot_dev is the block device on which BISDN Linux should be installed (e.g.,
+# "/dev/sda")
 boot_dev=$(platform_detect_boot_device)
 [ -n "$boot_dev" ] || {
     echo "ERROR: failed to detect boot device!" >&2
 }
-# determine ONIE partition type
+# determine ONIE partition type (e.g., "gpt", "msdos"))
 onie_partition_type=$(onie-sysinfo -t)
-# determine ONIE firmware type
+
+# determine ONIE firmware type (e.g., "bios", "uefi", "u-boot")
 onie_firmware_type=$(platform_get_firmware_type)
 
 if [ "$onie_partition_type" = "gpt" ] ; then
@@ -276,12 +283,15 @@ DO_RESTORE=false
 # See if BISDN Linux partition already exists
 old_part=$(eval $detect_bisdn_linux_partition $boot_dev)
 if [ -n "$old_part" ]; then
+    # old_part contains partition number of existing BISDN Linux installation
+
     # backup existing config
     backup_cfg $boot_dev $old_part
     # delete existing partition
     eval $delete_bisdn_linux_partition $boot_dev $old_part
 fi
 
+# Make space for our new BISDN Linux partition
 platform_erase_disk
 
 bisdn_linux_part=$(eval $create_bisdn_linux_partition $boot_dev $part_size)
@@ -320,10 +330,10 @@ else
     exit 1
 fi
 
-# store installation log in BISDN Linux file system
+# store installation log in BISDN Linux file system (/onie-support-*.tar.bz2)
 onie-support $bisdn_linux_mnt
 
-# activate the installation
+# point bootloader to kernel image (for u-boot: also copy the kernel to /boot)
 platform_install_bootloader_entry $boot_dev $bisdn_linux_part $bisdn_linux_mnt $fs_type
 
 # Restore the network configuration from previous installation
