@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# This script creates an ONIE installable image from a kernel image and a
+# rootfs.
+#
+# Positional arguments:
+# - MACHINE: allows us to find the correct platform.conf and our caller to
+#            find the output file
+# - FILE(S): paths to kernel image (bzImage, fitImage) and rootfs files
+#            to be included in the ONIE installable image
+
+# The resulting image contains the following files:
+# installer
+# ├── bzImage       (or fitImage for ARM platforms)
+# ├── install.sh    (generic main ONIE installer)
+# ├── lib
+# │   └── backup.sh (code for backup/restore of selected config files)
+# ├── machine.conf  (e.g., "platform=x86_64-accton-as5835-54x-r0")
+# ├── platform.conf (config variables and platform-specific function defs)
+# ├── platform.sh   (code for dealing with grub or u-boot)
+# └── rootfs.tar.xz
+
 # Based on:
 # https://github.com/opencomputeproject/onie/blob/6c3b92f7/build-config/scripts/onie-mk-demo.sh
 #
