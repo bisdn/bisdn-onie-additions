@@ -10,6 +10,14 @@ set -e
 
 . $(dirname "$0")/lib/backup.sh
 
+# Returns partition device path based on disk device path and partition number
+#
+# arg $1 -- block device
+#
+# arg $2 -- partition number
+#
+# Outputs partition device path
+
 part_blk_dev() {
     case "$1" in
         *mmcblk*|*nvme*)
@@ -66,6 +74,7 @@ backup_cfg()
 
     umount $bisdn_linux_old
 }
+
 # Restores a backup of current network configuration files
 #
 # arg $1 -- backup directory
@@ -78,6 +87,12 @@ restore_cfg()
     restore_backup $backup_tmp_dir $bisdn_linux_mnt
 }
 
+# Detects an existing BISDN Linux gpt partition
+#
+# arg $1 -- block device path
+#
+# Outputs the detected partition number
+
 detect_bisdn_linux_gpt_partition()
 {
     local blk_dev="$1"
@@ -87,6 +102,12 @@ detect_bisdn_linux_gpt_partition()
 
     echo "$part"
 }
+
+# Deletes an existing BISDN Linux gpt partition
+#
+# arg $1 -- block device path
+#
+# arg $2 -- partition number
 
 delete_bisdn_linux_gpt_partition()
 {
@@ -100,11 +121,11 @@ delete_bisdn_linux_gpt_partition()
     partprobe $blk_dev
 }
 
-# Creates a new partition for the BISDN Linux OS.
+# Creates a new gpt partition for the BISDN Linux OS.
 #
 # arg $1 -- base block device
 #
-# arg $2 -- size of the partion
+# arg $2 -- size of the partion (in MB)
 #
 # Outputs the created partition number
 
@@ -121,7 +142,7 @@ create_bisdn_linux_gpt_partition()
     part=$(( $last_part + 1 ))
 
     # Create new partition
-    echo "Creating new BISDN Linux partition ${blk_dev}$part ..." >&2
+    echo "Creating new BISDN Linux gpt partition ${blk_dev}$part ..." >&2
 
     attr_bitmask="0x0"
 
@@ -146,6 +167,12 @@ create_bisdn_linux_gpt_partition()
     echo "$part"
 }
 
+# Detects an existing BISDN Linux msdos partition
+#
+# arg $1 -- block device path
+#
+# Outputs the detected partition number
+
 detect_bisdn_linux_msdos_partition()
 {
     local blk_dev="$1"
@@ -161,6 +188,12 @@ detect_bisdn_linux_msdos_partition()
     echo "$bisdn_linux_part"
 }
 
+# Deletes an existing BISDN Linux msdos partition
+#
+# arg $1 -- block device path
+#
+# arg $2 -- partition number
+
 delete_bisdn_linux_msdos_partition()
 {
     local blk_dev="$1"
@@ -173,11 +206,11 @@ delete_bisdn_linux_msdos_partition()
     partprobe $blk_dev
 }
 
-# Creates a new partition for the BISDN Linux OS.
+# Creates a new msdos partition for the BISDN Linux OS.
 #
 # arg $1 -- base block device
 #
-# arg $2 -- size of the partion
+# arg $2 -- size of the partion (in MB)
 #
 # Outputs the created partition number
 
@@ -201,7 +234,7 @@ create_bisdn_linux_msdos_partition()
     part_end=$(( $part_start + ( $size * $sectors_per_mb ) - 1 ))
 
     # Create new partition
-    echo "Creating new BISDN Linux partition ${blk_dev}$bisdn_linux_part ..." >&2
+    echo "Creating new BISDN Linux msdos partition ${blk_dev}$bisdn_linux_part ..." >&2
     parted -s --align optimal $blk_dev unit s \
       mkpart primary $part_start $part_end set $part boot on || {
         echo "ERROR: Problems creating BISDN Linux msdos partition $part on: $blk_dev" >&2
