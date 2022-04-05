@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Based on:
+# https://github.com/opencomputeproject/onie/blob/42c7448479a9158cd47d4d5dd76923c75ba52cab/demo/installer/x86_64/install.sh
+
 #  Copyright (C) 2014-2015 Curt Brune <curt@cumulusnetworks.com>
 #  Copyright (C) 2014-2015 david_yang <david_yang@accton.com>
 #
