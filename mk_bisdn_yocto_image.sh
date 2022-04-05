@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Based on:
+# https://github.com/opencomputeproject/onie/blob/6c3b92f7/build-config/scripts/onie-mk-demo.sh
 #
 #  Copyright (C) 2013,2014,2015 Curt Brune <curt@cumulusnetworks.com>
 #  Copyright (C) 2015 david_yang <david_yang@accton.com>
