@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# XXX NOTE XXX
+# This script is only for legacy images; new images are built by yocto recipes.
+# See https://github.com/bisdn/meta-switch/commit/04a76eb56aa5e08863b9b989ae41d61b1323175a
+
 # This script creates an ONIE installable image from a kernel image and a
 # rootfs.
 #
