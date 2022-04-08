@@ -320,6 +320,7 @@ DO_RESTORE=false
 
 # See if BISDN Linux partition already exists
 old_part=$(eval $detect_bisdn_linux_partition $boot_dev)
+[ -n $DEBUG ] && echo "DEBUG: old_part=${old_part}" >&2
 if [ -n "$old_part" ]; then
     # old_part contains partition number of existing BISDN Linux installation
 
@@ -345,6 +346,8 @@ bisdn_linux_mnt=$(mktemp -d) || {
 }
 
 # Create filesystem on BISDN Linux partition with a label
+[ -n $DEBUG ] && echo "DEBUG: creating filesystem"
+
 mkfs.$fs_type -L $BISDN_LINUX_VOLUME_LABEL $bisdn_linux_dev || {
     echo "Error: Unable to create file system on $bisdn_linux_dev" >&2
     exit 1
