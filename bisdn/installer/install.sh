@@ -149,11 +149,10 @@ create_bisdn_linux_gpt_partition()
 detect_bisdn_linux_msdos_partition()
 {
     local blk_dev="$1"
-    local label="$2"
     local bisdn_linux_part=""
     local part_info
 
-    part_info="$(blkid | grep $label | awk -F: '{print $1}')"
+    part_info="$(blkid | grep $BISDN_LINUX_VOLUME_LABEL | awk -F: '{print $1}')"
     if [ -n "$part_info" ] ; then
         bisdn_linux_part="$(echo -n $part_info | sed -e s#${blk_dev}##)"
     fi
