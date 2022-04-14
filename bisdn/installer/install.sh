@@ -10,6 +10,14 @@ set -e
 
 . $(dirname "$0")/lib/backup.sh
 
+# Returns partition device path based on disk device path and partition number
+#
+# arg $1 -- block device
+#
+# arg $2 -- partition number
+#
+# Outputs partition device path
+
 part_blk_dev() {
     case "$1" in
         *mmcblk*|*nvme*)
@@ -66,6 +74,7 @@ backup_cfg()
 
     umount $bisdn_linux_old
 }
+
 # Restores a backup of current network configuration files
 #
 # arg $1 -- backup directory
@@ -78,6 +87,12 @@ restore_cfg()
     restore_backup $backup_tmp_dir $bisdn_linux_mnt
 }
 
+# Detects an existing BISDN Linux gpt partition
+#
+# arg $1 -- block device path
+#
+# Outputs the detected partition number
+
 detect_bisdn_linux_gpt_partition()
 {
     local blk_dev="$1"
@@ -87,6 +102,12 @@ detect_bisdn_linux_gpt_partition()
 
     echo "$part"
 }
+
+# Deletes an existing BISDN Linux gpt partition
+#
+# arg $1 -- block device path
+#
+# arg $2 -- partition number
 
 delete_bisdn_linux_gpt_partition()
 {
@@ -100,11 +121,11 @@ delete_bisdn_linux_gpt_partition()
     partprobe $blk_dev
 }
 
-# Creates a new partition for the BISDN Linux OS.
+# Creates a new gpt partition for the BISDN Linux OS.
 #
 # arg $1 -- base block device
 #
-# arg $2 -- size of the partion
+# arg $2 -- size of the partion (in MB)
 #
 # Outputs the created partition number
 
@@ -121,7 +142,7 @@ create_bisdn_linux_gpt_partition()
     part=$(( $last_part + 1 ))
 
     # Create new partition
-    echo "Creating new BISDN Linux partition ${blk_dev}$part ..." >&2
+    echo "Creating new BISDN Linux gpt partition ${blk_dev}$part ..." >&2
 
     attr_bitmask="0x0"
 
@@ -146,6 +167,12 @@ create_bisdn_linux_gpt_partition()
     echo "$part"
 }
 
+# Detects an existing BISDN Linux msdos partition
+#
+# arg $1 -- block device path
+#
+# Outputs the detected partition number
+
 detect_bisdn_linux_msdos_partition()
 {
     local blk_dev="$1"
@@ -160,6 +187,12 @@ detect_bisdn_linux_msdos_partition()
     echo "$bisdn_linux_part"
 }
 
+# Deletes an existing BISDN Linux msdos partition
+#
+# arg $1 -- block device path
+#
+# arg $2 -- partition number
+
 delete_bisdn_linux_msdos_partition()
 {
     local blk_dev="$1"
@@ -172,11 +205,11 @@ delete_bisdn_linux_msdos_partition()
     partprobe $blk_dev
 }
 
-# Creates a new partition for the BISDN Linux OS.
+# Creates a new msdos partition for the BISDN Linux OS.
 #
 # arg $1 -- base block device
 #
-# arg $2 -- size of the partion
+# arg $2 -- size of the partion (in MB)
 #
 # Outputs the created partition number
 
@@ -199,7 +232,7 @@ create_bisdn_linux_msdos_partition()
     part_end=$(( $part_start + ( $size * $sectors_per_mb ) - 1 ))
 
     # Create new partition
-    echo "Creating new BISDN Linux partition ${blk_dev}$bisdn_linux_part ..." >&2
+    echo "Creating new BISDN Linux msdos partition ${blk_dev}$bisdn_linux_part ..." >&2
     parted -s --align optimal $blk_dev unit s \
       mkpart primary $part_start $part_end set $part boot on || {
         echo "ERROR: Problems creating BISDN Linux msdos partition $part on: $blk_dev" >&2
@@ -234,22 +267,29 @@ platform_install_bootloader_entry()
 
 cd $(dirname $0)
 . ./machine.conf
+# platform.sh may override dummy functions above (e.g., platform_check)
 . ./platform.sh
 
 echo "BISDN Linux Installer: platform: $platform"
 
+# part_size: BISDN Linux partition in MB
 part_size=6144
 fs_type="${BISDN_FS_TYPE:-ext4}"
 
+# platform_check, if implemented, aborts with an error if the hardware platform
+# is not supported by our image
 platform_check
 
+# boot_dev is the block device on which BISDN Linux should be installed (e.g.,
+# "/dev/sda")
 boot_dev=$(platform_detect_boot_device)
 [ -n "$boot_dev" ] || {
     echo "ERROR: failed to detect boot device!" >&2
 }
-# determine ONIE partition type
+# determine ONIE partition type (e.g., "gpt", "msdos"))
 onie_partition_type=$(onie-sysinfo -t)
-# determine ONIE firmware type
+
+# determine ONIE firmware type (e.g., "bios", "uefi", "u-boot")
 onie_firmware_type=$(platform_get_firmware_type)
 
 if [ "$onie_partition_type" = "gpt" ] ; then
@@ -274,12 +314,15 @@ DO_RESTORE=false
 # See if BISDN Linux partition already exists
 old_part=$(eval $detect_bisdn_linux_partition $boot_dev)
 if [ -n "$old_part" ]; then
+    # old_part contains partition number of existing BISDN Linux installation
+
     # backup existing config
     backup_cfg $boot_dev $old_part
     # delete existing partition
     eval $delete_bisdn_linux_partition $boot_dev $old_part
 fi
 
+# Make space for our new BISDN Linux partition
 platform_erase_disk
 
 bisdn_linux_part=$(eval $create_bisdn_linux_partition $boot_dev $part_size)
@@ -318,10 +361,10 @@ else
     exit 1
 fi
 
-# store installation log in BISDN Linux file system
+# store installation log in BISDN Linux file system (/onie-support-*.tar.bz2)
 onie-support $bisdn_linux_mnt
 
-# activate the installation
+# point bootloader to kernel image (for u-boot: also copy the kernel to /boot)
 platform_install_bootloader_entry $boot_dev $bisdn_linux_part $bisdn_linux_mnt $fs_type
 
 # Restore the network configuration from previous installation
