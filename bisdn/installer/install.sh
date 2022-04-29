@@ -222,9 +222,15 @@ create_bisdn_linux_msdos_partition()
     # Find next available partition
     part_info="$(parted -s -m $blk_dev unit s print | tail -n 1)"
     last_part="$(echo -n $part_info | awk -F: '{print $1}')"
-    last_part_end="$(echo -n $part_info | awk -F: '{print $3}')"
-    # Remove trailing 's'
-    last_part_end=${last_part_end%s}
+    if expr "$last_part" : /dev/ >/dev/null; then
+      # Line starts with "/dev/", there are no partitions
+      last_part=0
+      last_part_end=0
+    else
+      last_part_end="$(echo -n $part_info | awk -F: '{print $3}')"
+      # Remove trailing 's'
+      last_part_end=${last_part_end%s}
+    fi
     part=$(( $last_part + 1 ))
     part_start=$(( $last_part_end + 1 ))
     # sectors_per_mb = (1024 * 1024) / 512 = 2048
