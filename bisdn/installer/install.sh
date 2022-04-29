@@ -232,7 +232,7 @@ create_bisdn_linux_msdos_partition()
     part_end=$(( $part_start + ( $size * $sectors_per_mb ) - 1 ))
 
     # Create new partition
-    echo "Creating new BISDN Linux msdos partition ${blk_dev}$bisdn_linux_part ..." >&2
+    echo "Creating new BISDN Linux msdos partition ${blk_dev}$part ..." >&2
     parted -s --align optimal $blk_dev unit s \
       mkpart primary $part_start $part_end set $part boot on || {
         echo "ERROR: Problems creating BISDN Linux msdos partition $part on: $blk_dev" >&2
