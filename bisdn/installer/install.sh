@@ -161,7 +161,7 @@ create_bisdn_linux_gpt_partition()
             local num=${b#Boot}
             # Remove trailing '*'
             num=${num%\*}
-            efibootmgr -b $num -B > /dev/null 2>&1
+            efibootmgr --bootnum $num --delete-bootnum > /dev/null 2>&1
         done
     fi
 
