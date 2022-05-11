@@ -146,13 +146,13 @@ create_bisdn_linux_gpt_partition()
 
     attr_bitmask="0x0"
 
+    [ -n $DEBUG ] && echo "DEBUG: sgdisk --new=${part}::+${size}MB --attributes=${part}:=:$attr_bitmask --change-name=${part}:$BISDN_LINUX_VOLUME_LABEL $blk_dev" >&2
     sgdisk --new=${part}::+${size}MB \
         --attributes=${part}:=:$attr_bitmask \
         --change-name=${part}:$BISDN_LINUX_VOLUME_LABEL $blk_dev > /dev/null || {
         echo "Error: Unable to create partition $part on $blk_dev" >&2
         exit 1
     }
-    [ -n $DEBUG ] && echo "DEBUG: sgdisk --new=${part}::+${size}MB --attributes=${part}:=:$attr_bitmask --change-name=${part}:$BISDN_LINUX_VOLUME_LABEL $blk_dev" >&2
     partprobe $blk_dev
 
     if [ "$onie_firmware_type" = "uefi" ] ; then
