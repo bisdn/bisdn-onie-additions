@@ -155,12 +155,14 @@ create_bisdn_linux_gpt_partition()
     }
     partprobe $blk_dev
 
+    [ -n $DEBUG ] && echo "DEBUG: efibootmgr $(efibootmgr)" >&2
     if [ "$onie_firmware_type" = "uefi" ] ; then
         # erase any related EFI BootOrder variables from NVRAM.
         for b in $(efibootmgr | grep "$BISDN_LINUX_VOLUME_LABEL" | awk '{ print $1 }') ; do
             local num=${b#Boot}
             # Remove trailing '*'
             num=${num%\*}
+            [ -n $DEBUG ] && echo "DEBUG: deleting efi bootnum $num" >&2
             efibootmgr --bootnum $num --delete-bootnum > /dev/null 2>&1
         done
     fi
