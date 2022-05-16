@@ -282,7 +282,7 @@ cd $(dirname $0)
 echo "BISDN Linux Installer: platform: $platform"
 
 # part_size: BISDN Linux partition in MB
-part_size=6144
+part_size=163840
 fs_type="${BISDN_FS_TYPE:-ext4}"
 
 # platform_check, if implemented, aborts with an error if the hardware platform
