@@ -12,11 +12,6 @@ set -e
 
 BISDN_ENABLE_NOS_MODE=1
 
-install_uimage() {
-    echo "Copying uImage to NOR flash:"
-    flashcp -v bisdn-linux-${platform}.itb $mtd_dev
-}
-
 hw_load() {
     echo "cp.b $img_start \$loadaddr $img_sz"
 }
