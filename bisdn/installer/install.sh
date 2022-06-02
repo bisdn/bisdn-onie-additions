@@ -373,6 +373,34 @@ onie-support $bisdn_linux_mnt
 # point bootloader to kernel image (for u-boot: also copy the kernel to /boot)
 platform_install_bootloader_entry $boot_dev $bisdn_linux_part $bisdn_linux_mnt $fs_type
 
+# <arch>-<vendor>-<platform>-<revision>
+onl_platform="$(onie-sysinfo -p | tr '_' '-')"
+# <arch>-<vendor>-<platform>
+onl_baseplatform="${onl_platform%-r*}"
+
+[ -n $DEBUG ] && echo "DEBUG: onl_platform=${onl_platform}"
+[ -n $DEBUG ] && echo "DEBUG: onl_baseplatform=${onl_baseplatform}"
+
+# setup ONL platform info
+mkdir -p "$bisdn_linux_mnt/etc/onl"
+echo "${onl_platform}" > "$bisdn_linux_mnt/etc/onl/platform"
+
+# setup ONLP platform library
+onl_platformlib=
+if [ -f "$bisdn_linux_mnt/usr/lib/libonlp-${onl_platform}.so.1" ]; then
+    onl_platformlib="libonlp-${onl_platform}.so.1"
+elif [ -f "$bisdn_linux_mnt/usr/lib/libonlp-${onl_baseplatform}.so.1" ]; then
+    onl_platformlib="libonlp-${onl_baseplatform}.so.1"
+fi
+
+if [ -n "$onl_platformlib" ]; then
+    # libonlp-platform.so.1 may be the dummy lib, remove it if it exists
+    if [ -e "$bisdn_linux_mnt/usr/lib/libonlp-platform.so.1" ]; then
+        rm -f "$bisdn_linux_mnt/usr/lib/libonlp-platform.so.1"
+    fi
+    ln -s "$onl_platformlib" "$bisdn_linux_mnt/usr/lib/libonlp-platform.so.1"
+fi
+
 # Restore the network configuration from previous installation
 if [ "${DO_RESTORE}" = true ]; then
     restore_cfg $backup_tmp_dir $bisdn_linux_mnt
