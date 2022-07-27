@@ -7,7 +7,6 @@
 
 SYSTEM_BACKUP_FILE="etc/default/system-backup.txt"
 USER_BACKUP_FILE="etc/default/user-backup.txt"
-BACKUP_SUFFIX="-default"
 
 # $1 src $2 dest
 cp_path_with_attr() {
@@ -153,6 +152,16 @@ restore_backup()
         [ -f "$2/$basefile" ] || continue
         # nothing to do if they are the same
         cmp -s "$file" "$2/$basefile" && continue
+
+	case "$basefile" in
+		"etc/sudoers.d/"*)
+			# sudo only ignores files with . or ending in ~
+			BACKUP_SUFFIX=".default"
+			;;
+		*)
+			BACKUP_SUFFIX="-default"
+			;;
+	esac
 
 	[ -n "$DEBUG" ] && echo "DEBUG: $2/$basefile is different, creating backup as $basefile$BACKUP_SUFFIX" >&2
 
