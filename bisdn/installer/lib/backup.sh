@@ -117,6 +117,15 @@ parse_file() {
 	done < $1
 }
 
+# $1 src $2 dst
+apply_fixups() {
+	# releases pre 4.7.0 are missing gshadow in the backup list
+	if [ -f "$2/etc/group" ] && [ ! -f "$2/etc/gshadow" ]; then
+		[ -n "$DEBUG" ] && echo "DEBUG: /etc/group found but no /etc/gshadow"
+		add_to_backup "/etc/gshadow" $1 $2
+	fi
+}
+
 # $1 backup target $2 backup storage dir
 create_backup()
 {
@@ -131,6 +140,8 @@ create_backup()
 	# step 2 - remove files to drop
 	parse_file "$1/$SYSTEM_BACKUP_FILE" "-" $1 $2
 	parse_file "$1/$USER_BACKUP_FILE" "-" $1 $2
+
+	apply_fixups $1 $2
 
 	# step 3 - check if anything is left
 	[ -n "$(find $2 -type f)" ] || return 0
